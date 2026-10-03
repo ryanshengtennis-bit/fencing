@@ -44,7 +44,6 @@
     .match-meta b{display:block;color:var(--ink);font:700 1.1rem "Barlow Condensed",sans-serif;letter-spacing:.08em}
     .arena-frame{position:relative;border:1px solid var(--line);background:#091725;box-shadow:0 24px 80px #0008;overflow:hidden}
     .scorebar{height:72px;display:grid;grid-template-columns:1fr auto 1fr;align-items:center;padding:0 24px;border-bottom:1px solid var(--line);background:#0b1826}
-    .right-zone{justify-self:end;display:flex;align-items:center;gap:18px}
     .fencer-score{display:flex;align-items:center;gap:14px;font:700 1.1rem "Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.1em}
     .fencer-score.right{justify-self:end;flex-direction:row-reverse;text-align:right}
     .fencer-score .badge{width:9px;height:34px;background:var(--blue)}
@@ -105,7 +104,7 @@
     .special-status{display:flex;justify-content:space-between;color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.1em}
     .special-button{width:100%;margin-top:12px;padding:9px;border:1px solid var(--acid);background:var(--acid);color:#07111d;font:800 .85rem "Barlow Condensed",sans-serif;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
     .special-button:disabled{border-color:#3a5066;background:#172536;color:#74869a;cursor:not-allowed;box-shadow:none}
-    .score-special{width:210px;padding:7px 9px;border:1px solid #31465a;background:#07111d}
+    .score-special{position:absolute;top:16px;right:16px;z-index:2;width:210px;padding:7px 9px;border:1px solid #31465a;background:#07111de8;box-shadow:0 8px 24px #0004}
     .score-special-head{display:flex;align-items:baseline;justify-content:space-between;gap:8px}
     .score-special .special-name{font-size:.9rem;line-height:1}
     .score-special .special-odds{color:var(--muted);font:600 .58rem Inter,sans-serif;letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
@@ -118,7 +117,7 @@
     .touch-controls .parry{border-color:var(--blue);color:var(--blue)}
     .touch-controls .special{grid-column:1/-1;border-color:#9a54ff;color:#e6d5ff;background:linear-gradient(90deg,#27184a,#192d55)}
     @media(max-width:800px){.shell{padding:0 14px 24px}header{height:62px}.brand{font-size:1.1rem}.brand-mark{width:24px;height:24px}.game-tab{padding:0 11px}.game-tab.locked,.status{display:none}.topline{grid-template-columns:1fr;gap:14px;align-items:start}.mode-picker{order:2;width:100%}.mode-btn{flex:1;padding:9px 5px}.mode-btn small{font-size:.5rem}.difficulty-wrap{order:3;justify-self:stretch;text-align:left}.difficulty-label{display:none}.difficulty-picker{width:100%}.difficulty-btn{flex:1;padding:8px}.match-meta{display:none}.canvas-wrap{aspect-ratio:auto;height:50vh;min-height:340px}.weapon-hud{top:10px;left:10px}.weapon-hud span{display:none}.scorebar{padding:0 14px}.fencer-score strong{font-size:2rem}.fencer-score span{display:none}.timer{font-size:1.7rem}.lower{grid-template-columns:1fr}.panel{border-right:0;border-bottom:1px solid var(--line);min-height:auto}.panel:first-child{display:none}.touch-controls{display:grid}}
-    @media(max-width:800px){.scorebar{grid-template-columns:auto 84px minmax(0,1fr);padding:0 9px}.timer{min-width:84px}.right-zone{min-width:0;gap:5px}.right-zone .fencer-score{gap:5px}.score-special{width:100px;padding:6px}.score-special .special-name{font-size:.76rem}.score-special .special-odds{display:none}.score-special .special-button{display:none}.score-special .special-status{font-size:.5rem;letter-spacing:.04em}.score-special .charge-track{margin-bottom:4px}}
+    @media(max-width:800px){.score-special{top:10px;right:10px;width:138px;padding:6px}.score-special .special-name{font-size:.76rem}.score-special .special-odds{display:none}.score-special .special-button{display:none}.score-special .special-status{font-size:.54rem;letter-spacing:.04em}.score-special .charge-track{margin-bottom:4px}}
     @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
   </style>
 </head>
@@ -155,19 +154,17 @@
         <div class="scorebar">
           <div class="fencer-score"><i class="badge"></i><span>You</span><strong id="playerScore">0</strong></div>
           <div class="timer"><span id="clock">9:00</span><small id="roundLabel">Sabre bout</small><div class="priority" id="priority">Right of way · neutral</div></div>
-          <div class="right-zone">
-            <div class="score-special" aria-label="Charged special move">
-              <div class="score-special-head"><span class="special-name" id="specialName">Mask Hit</span><span class="special-odds" id="specialOdds">2 / 5 chance</span></div>
-              <div class="charge-track" role="progressbar" aria-label="Special charge" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="charge-fill" id="chargeFill"></div></div>
-              <div class="special-status"><span id="chargeText">Charging · 0%</span></div>
-              <button class="special-button" id="specialButton" disabled>Charge special</button>
-            </div>
-            <div class="fencer-score right"><i class="badge"></i><span>Rival</span><strong id="aiScore">0</strong></div>
-          </div>
+          <div class="fencer-score right"><i class="badge"></i><span>Rival</span><strong id="aiScore">0</strong></div>
         </div>
         <div class="canvas-wrap">
           <canvas id="arena" width="1200" height="510" aria-label="Fencing game. Move with A and D, attack with J, parry with K."></canvas>
           <div class="weapon-hud" aria-live="polite"><strong id="weaponAction">Cut + thrust</strong><span id="weaponTarget">Target · Upper body</span><span id="weaponScoring">Right of way</span></div>
+          <div class="score-special" aria-label="Charged special move">
+            <div class="score-special-head"><span class="special-name" id="specialName">Mask Hit</span><span class="special-odds" id="specialOdds">2 / 5 chance</span></div>
+            <div class="charge-track" role="progressbar" aria-label="Special charge" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="charge-fill" id="chargeFill"></div></div>
+            <div class="special-status"><span id="chargeText">Charging · 0%</span></div>
+            <button class="special-button" id="specialButton" disabled>Charge special</button>
+          </div>
           <div class="start-card" id="startCard">
             <div class="eyebrow" id="introEyebrow">Weapon 01 / Sabre</div>
             <h2 id="introTitle">En garde</h2>

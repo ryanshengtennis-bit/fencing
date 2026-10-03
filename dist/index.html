@@ -65,13 +65,22 @@
     .weapon-hud{position:absolute;top:16px;left:16px;z-index:2;display:flex;align-items:center;gap:8px;pointer-events:none}
     .weapon-hud span{padding:7px 10px;background:#07111de8;border:1px solid #31465a;color:#d9e5ef;font:700 .66rem Inter,sans-serif;letter-spacing:.08em;text-transform:uppercase}
     .weapon-hud strong{padding:8px 11px;background:var(--acid);color:#07111d;font:800 .76rem "Barlow Condensed",sans-serif;letter-spacing:.1em;text-transform:uppercase}
-    .lower{display:grid;grid-template-columns:1fr 1.3fr 1fr;border:1px solid var(--line);border-top:0;background:#0a1623}
-    .panel{padding:21px 24px;min-height:142px;border-right:1px solid var(--line)}
+    .lower{display:grid;grid-template-columns:1.25fr 1.2fr .8fr;border:1px solid var(--line);border-top:0;background:#0a1623}
+    .panel{padding:21px 24px;min-height:170px;border-right:1px solid var(--line)}
     .panel:last-child{border-right:0}
     .kicker{color:var(--muted);font:600 .68rem Inter,sans-serif;text-transform:uppercase;letter-spacing:.16em;margin-bottom:13px}
     .controls{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
     kbd{min-width:34px;height:34px;padding:0 9px;display:grid;place-items:center;border:1px solid #3a5066;border-bottom-width:3px;background:#0e2030;font:700 .78rem Inter,sans-serif}
     .controls span{font-size:.78rem;color:var(--muted);margin-right:8px}
+    .key-guide{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-top:2px}
+    .key-action{display:grid;grid-template-columns:82px 1fr;align-items:center;gap:11px;padding:10px;border:1px solid #26394c;background:#0d1b29}
+    .keycaps{display:flex;align-items:center;justify-content:flex-start;gap:5px;white-space:nowrap}
+    .keycaps kbd{min-width:30px;height:32px;padding:0 8px;font-size:.82rem;color:#fff}
+    .keycaps .plus{color:var(--muted);font-size:.75rem}
+    .key-copy strong{display:block;font:700 1rem "Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.06em}
+    .key-copy span{display:block;margin-top:2px;color:var(--muted);font-size:.75rem;line-height:1.25}
+    .key-action.lunge{border-color:#566026;background:#f5ff6709}
+    .key-action.lunge kbd{border-color:#8e9840;color:var(--acid)}
     .weapon{display:flex;gap:18px;align-items:flex-start}
     .target-icon{flex:0 0 54px;height:72px;position:relative}
     .target-icon:before{content:"";position:absolute;width:24px;height:24px;border:2px solid var(--muted);border-radius:50%;left:14px;top:0}
@@ -148,8 +157,13 @@
 
       <section class="lower">
         <div class="panel">
-          <div class="kicker">Keyboard</div>
-          <div class="controls"><kbd>A</kbd><kbd>D</kbd><span>Move</span><kbd>J</kbd><span>Attack · double-tap to lunge</span><kbd>K</kbd><span>Parry</span></div>
+          <div class="kicker">Keyboard controls</div>
+          <div class="key-guide" aria-label="Keyboard controls">
+            <div class="key-action"><div class="keycaps"><kbd>A</kbd><kbd>D</kbd></div><div class="key-copy"><strong>Footwork</strong><span>Retreat / advance</span></div></div>
+            <div class="key-action"><div class="keycaps"><kbd>J</kbd></div><div class="key-copy"><strong>Attack</strong><span>Standard blade action</span></div></div>
+            <div class="key-action lunge"><div class="keycaps"><kbd>J</kbd><span class="plus">+</span><kbd>J</kbd></div><div class="key-copy"><strong>Lunge</strong><span>Quick double-tap</span></div></div>
+            <div class="key-action"><div class="keycaps"><kbd>K</kbd></div><div class="key-copy"><strong>Parry</strong><span>Deflect, then riposte</span></div></div>
+          </div>
         </div>
         <div class="panel weapon">
           <div class="target-icon" id="targetIcon" data-mode="sabre" aria-hidden="true"></div>

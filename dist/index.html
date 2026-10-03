@@ -65,6 +65,11 @@
     .weapon-hud{position:absolute;top:16px;left:16px;z-index:2;display:flex;align-items:center;gap:8px;pointer-events:none}
     .weapon-hud span{padding:7px 10px;background:#07111de8;border:1px solid #31465a;color:#d9e5ef;font:700 .66rem Inter,sans-serif;letter-spacing:.08em;text-transform:uppercase}
     .weapon-hud strong{padding:8px 11px;background:var(--acid);color:#07111d;font:800 .76rem "Barlow Condensed",sans-serif;letter-spacing:.1em;text-transform:uppercase}
+    .cosmic-overlay{position:fixed;inset:0;z-index:20;pointer-events:none;opacity:0;transition:opacity .28s ease;background:radial-gradient(circle at 18% 28%,#00e5ffcc 0,transparent 25%),radial-gradient(circle at 78% 22%,#ff2bd6cc 0,transparent 28%),radial-gradient(circle at 56% 78%,#7a35ffdd 0,transparent 34%),linear-gradient(125deg,#02051b 0,#172c68 45%,#36064f 100%);mix-blend-mode:screen}
+    .cosmic-overlay:before,.cosmic-overlay:after{content:"";position:absolute;inset:-25%;background:repeating-radial-gradient(circle at 50% 50%,#fff 0 1px,transparent 1.5px 38px);opacity:.56;animation:cosmicSpin 5s linear infinite}
+    .cosmic-overlay:after{background:conic-gradient(from 90deg at 50% 50%,transparent,#38d9ff77,transparent,#ff3fd877,transparent);filter:blur(22px);animation-direction:reverse;animation-duration:3s}
+    .cosmic-overlay.active{opacity:.78}
+    @keyframes cosmicSpin{to{transform:rotate(360deg) scale(1.08)}}
     .lower{display:grid;grid-template-columns:1.25fr 1.2fr .8fr;border:1px solid var(--line);border-top:0;background:#0a1623}
     .panel{padding:21px 24px;min-height:170px;border-right:1px solid var(--line)}
     .panel:last-child{border-right:0}
@@ -93,15 +98,23 @@
     .weapon p{margin:0;color:var(--muted);font-size:.82rem;line-height:1.55;max-width:52ch}
     .first-to{font:800 2.8rem/1 "Barlow Condensed",sans-serif;color:var(--acid)}
     .first-to span{display:block;color:var(--muted);font:500 .76rem Inter,sans-serif;letter-spacing:.08em;line-height:1.45;margin-top:8px}
+    .special-name{font:800 1.45rem "Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.06em;color:var(--acid)}
+    .charge-track{height:10px;margin:10px 0 8px;border:1px solid #3a5066;background:#07111d;overflow:hidden}
+    .charge-fill{height:100%;width:0;background:linear-gradient(90deg,var(--blue),#9a54ff,var(--acid));box-shadow:0 0 14px var(--acid);transition:width .12s linear}
+    .special-status{display:flex;justify-content:space-between;color:var(--muted);font-size:.72rem;text-transform:uppercase;letter-spacing:.1em}
+    .special-button{width:100%;margin-top:12px;padding:9px;border:1px solid var(--acid);background:var(--acid);color:#07111d;font:800 .85rem "Barlow Condensed",sans-serif;letter-spacing:.1em;text-transform:uppercase;cursor:pointer}
+    .special-button:disabled{border-color:#3a5066;background:#172536;color:#74869a;cursor:not-allowed;box-shadow:none}
     .touch-controls{display:none;grid-template-columns:1fr 1fr 1.2fr 1.2fr;gap:8px;padding:12px 0}
     .touch-controls button{height:54px;border:1px solid var(--line);background:#0d1d2c;font:800 1rem "Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.08em;touch-action:none}
     .touch-controls .attack{background:var(--acid);color:#07111d;border-color:var(--acid)}
     .touch-controls .parry{border-color:var(--blue);color:var(--blue)}
+    .touch-controls .special{grid-column:1/-1;border-color:#9a54ff;color:#e6d5ff;background:linear-gradient(90deg,#27184a,#192d55)}
     @media(max-width:800px){.shell{padding:0 14px 24px}header{height:62px}.brand{font-size:1.1rem}.brand-mark{width:24px;height:24px}.game-tab{padding:0 11px}.game-tab.locked,.status{display:none}.topline{grid-template-columns:1fr;gap:14px;align-items:start}.mode-picker{order:2;width:100%}.mode-btn{flex:1;padding:9px 5px}.mode-btn small{font-size:.5rem}.difficulty-wrap{order:3;justify-self:stretch;text-align:left}.difficulty-label{display:none}.difficulty-picker{width:100%}.difficulty-btn{flex:1;padding:8px}.match-meta{display:none}.canvas-wrap{aspect-ratio:auto;height:50vh;min-height:340px}.weapon-hud{top:10px;left:10px}.weapon-hud span{display:none}.scorebar{padding:0 14px}.fencer-score strong{font-size:2rem}.fencer-score span{display:none}.timer{font-size:1.7rem}.lower{grid-template-columns:1fr}.panel{border-right:0;border-bottom:1px solid var(--line);min-height:auto}.panel:first-child{display:none}.touch-controls{display:grid}}
     @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
   </style>
 </head>
 <body>
+  <div class="cosmic-overlay" id="cosmicOverlay" aria-hidden="true"></div>
   <div class="shell">
     <header>
       <div class="brand"><span class="brand-mark" aria-hidden="true"></span> En Garde</div>
@@ -153,6 +166,7 @@
         <button data-hold="right" aria-label="Advance">Advance ▶</button>
         <button class="parry" data-tap="parry">Parry</button>
         <button class="attack" data-tap="attack">Attack / Lunge</button>
+        <button class="special" id="touchSpecial" disabled>Special charging</button>
       </div>
 
       <section class="lower">
@@ -163,6 +177,7 @@
             <div class="key-action"><div class="keycaps"><kbd>J</kbd></div><div class="key-copy"><strong>Attack</strong><span>Standard blade action</span></div></div>
             <div class="key-action lunge"><div class="keycaps"><kbd>J</kbd><span class="plus">+</span><kbd>J</kbd></div><div class="key-copy"><strong>Lunge</strong><span>Quick double-tap</span></div></div>
             <div class="key-action"><div class="keycaps"><kbd>K</kbd></div><div class="key-copy"><strong>Parry</strong><span>Deflect, then riposte</span></div></div>
+            <div class="key-action"><div class="keycaps"><kbd>L</kbd></div><div class="key-copy"><strong>Special</strong><span>Use when fully charged</span></div></div>
           </div>
         </div>
         <div class="panel weapon">
@@ -170,8 +185,11 @@
           <div><div class="kicker">Current target</div><h3 id="ruleTitle">Upper body</h3><p id="ruleText">Sabre rewards aggression. Land a cut above the waist before your rival takes priority.</p></div>
         </div>
         <div class="panel">
-          <div class="kicker">Victory condition</div>
-          <div class="first-to">5 touches<span>90-second bout · Reset anytime by changing weapon.</span></div>
+          <div class="kicker">Charged special · L</div>
+          <div class="special-name" id="specialName">Mask Hit</div>
+          <div class="charge-track" role="progressbar" aria-label="Special charge" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div class="charge-fill" id="chargeFill"></div></div>
+          <div class="special-status"><span id="chargeText">Charging · 0%</span><span id="specialOdds">2 / 5 chance</span></div>
+          <button class="special-button" id="specialButton" disabled>Charge special</button>
         </div>
       </section>
     </main>
@@ -180,30 +198,34 @@
   <script>
   (()=>{
     const canvas=document.getElementById('arena'),ctx=canvas.getContext('2d');
-    const ui={p:document.getElementById('playerScore'),a:document.getElementById('aiScore'),clock:document.getElementById('clock'),round:document.getElementById('roundLabel'),priority:document.getElementById('priority'),card:document.getElementById('startCard'),start:document.getElementById('startButton'),call:document.getElementById('callout'),ruleTitle:document.getElementById('ruleTitle'),ruleText:document.getElementById('ruleText'),targetIcon:document.getElementById('targetIcon'),weaponAction:document.getElementById('weaponAction'),weaponTarget:document.getElementById('weaponTarget'),weaponScoring:document.getElementById('weaponScoring'),introEyebrow:document.getElementById('introEyebrow'),introTitle:document.getElementById('introTitle'),introText:document.getElementById('introText')};
+    const ui={p:document.getElementById('playerScore'),a:document.getElementById('aiScore'),clock:document.getElementById('clock'),round:document.getElementById('roundLabel'),priority:document.getElementById('priority'),card:document.getElementById('startCard'),start:document.getElementById('startButton'),call:document.getElementById('callout'),ruleTitle:document.getElementById('ruleTitle'),ruleText:document.getElementById('ruleText'),targetIcon:document.getElementById('targetIcon'),weaponAction:document.getElementById('weaponAction'),weaponTarget:document.getElementById('weaponTarget'),weaponScoring:document.getElementById('weaponScoring'),introEyebrow:document.getElementById('introEyebrow'),introTitle:document.getElementById('introTitle'),introText:document.getElementById('introText'),cosmic:document.getElementById('cosmicOverlay'),specialName:document.getElementById('specialName'),chargeFill:document.getElementById('chargeFill'),chargeText:document.getElementById('chargeText'),specialOdds:document.getElementById('specialOdds'),specialButton:document.getElementById('specialButton'),touchSpecial:document.getElementById('touchSpecial'),chargeTrack:document.querySelector('.charge-track')};
     const modes={
       sabre:{label:'Sabre',action:'Cut + thrust',scoring:'Right of way',target:'Above the waist',rule:'Fast cutting attacks can score on the head, arms, and torso. Take priority by starting first or with a parry-riposte.',reach:158,attack:350,parry:285,color:'#f5ff67',row:true,pressure:1.22,defense:.82,distance:34,lunge:46,call:'Cut'},
       foil:{label:'Foil',action:'Point thrust',scoring:'Right of way',target:'Torso only',rule:'Only point thrusts to the metallic torso score. Precise distance and parry-riposte timing are central.',reach:176,attack:500,parry:390,color:'#67f4d7',row:true,pressure:.92,defense:1.16,distance:68,lunge:58,call:'Thrust'},
       epee:{label:'Épée',action:'Point thrust',scoring:'No priority · doubles',target:'Whole body',rule:'Any point thrust on the body scores. There is no priority, so counterattacks and double touches become tactical weapons.',reach:195,attack:610,parry:360,color:'#57b8ff',row:false,pressure:.76,defense:.94,distance:96,lunge:70,call:'Counterattack'}
     };
     const difficulties={
-      easy:{label:'Easy',speed:.060,retreat:.070,reaction:.34,attack:.52,cool:820,variance:620,description:'A patient rival with slower reactions.'},
-      medium:{label:'Medium',speed:.085,retreat:.105,reaction:.68,attack:.72,cool:480,variance:720,description:'Balanced reactions and measured pressure.'},
-      hard:{label:'Hard',speed:.118,retreat:.142,reaction:.90,attack:.88,cool:230,variance:390,description:'Fast reactions, tight distance, strong parries.'}
+      easy:{label:'Easy',speed:.067,retreat:.080,reaction:.40,attack:.58,cool:720,variance:580,description:'A patient rival with improving reactions.'},
+      medium:{label:'Medium',speed:.095,retreat:.115,reaction:.74,attack:.78,cool:420,variance:650,description:'Sharper reactions and more measured pressure.'},
+      hard:{label:'Hard',speed:.130,retreat:.155,reaction:.94,attack:.92,cool:190,variance:340,description:'Elite reactions, tight distance, strong parries.'}
     };
-    let mode='sabre',difficulty='medium',running=false,ended=false,last=0,lastJ=0,time=90,flash=0,shake=0,priority=null,priorityTime=0;
+    const specials={sabre:{name:'Mask Hit',odds:'2 / 5 chance',chance:.4,opening:'Sabre special · Driving to the mask!'},foil:{name:'Feint–Disengage',odds:'3 / 5 chance',chance:.6,opening:'Foil special · Feint high…'},epee:{name:'Flèche',odds:'3 / 5 chance',chance:.6,opening:'Épée special · Flèche!'}};
+    const SPECIAL_CHARGE_MS=24000;
+    let mode='sabre',difficulty='medium',running=false,ended=false,last=0,lastJ=0,time=90,flash=0,shake=0,priority=null,priorityTime=0,specialCharge=0,specialActive=false,specialToken=0;
     const keys={left:false,right:false};
     const player={x:290,score:0,attack:0,parry:0,recovery:0,hit:false,riposte:0,lunging:false};
     const rival={x:910,score:0,attack:0,parry:0,recovery:0,hit:false,riposte:0,lunging:false,cool:900};
 
-    function reset(show=true){running=false;ended=false;time=90;lastJ=0;priority=null;priorityTime=0;player.x=290;rival.x=910;player.score=rival.score=0;player.attack=player.parry=player.riposte=player.recovery=rival.attack=rival.parry=rival.riposte=rival.recovery=0;player.lunging=rival.lunging=false;player.hit=rival.hit=false;rival.cool=difficulties[difficulty].cool;sync();if(show){ui.introTitle.textContent='En garde';ui.introText.textContent=modes[mode].action+' · Target: '+modes[mode].target+' · '+difficulties[difficulty].label+' rival';ui.start.textContent='Start bout';ui.card.classList.remove('hidden');ui.call.textContent='Choose weapon and difficulty · Enter to start';}}
-    function sync(){ui.p.textContent=player.score;ui.a.textContent=rival.score;ui.clock.textContent=Math.floor(time/60)+':'+String(Math.ceil(time%60)).padStart(2,'0');ui.round.textContent=modes[mode].label+' bout';ui.priority.textContent=modes[mode].row?(priority?'Right of way · '+(priority===player?'left':'right'):'Right of way · neutral'):'No right of way · doubles count';}
+    function reset(show=true){running=false;ended=false;time=90;lastJ=0;priority=null;priorityTime=0;specialCharge=0;specialActive=false;specialToken++;ui.cosmic.classList.remove('active');player.x=290;rival.x=910;player.score=rival.score=0;player.attack=player.parry=player.riposte=player.recovery=rival.attack=rival.parry=rival.riposte=rival.recovery=0;player.lunging=rival.lunging=false;player.hit=rival.hit=false;rival.cool=difficulties[difficulty].cool;sync();if(show){ui.introTitle.textContent='En garde';ui.introText.textContent=modes[mode].action+' · Target: '+modes[mode].target+' · '+difficulties[difficulty].label+' rival';ui.start.textContent='Start bout';ui.card.classList.remove('hidden');ui.call.textContent='Choose weapon and difficulty · Enter to start';}}
+    function syncSpecial(){const s=specials[mode],charged=specialCharge>=100&&!specialActive;ui.specialName.textContent=s.name;ui.specialOdds.textContent=s.odds;ui.chargeFill.style.width=specialCharge.toFixed(1)+'%';ui.chargeText.textContent=specialActive?'Special in progress':charged?'Ready · press L':'Charging · '+Math.floor(specialCharge)+'%';ui.chargeTrack.setAttribute('aria-valuenow',Math.floor(specialCharge));ui.specialButton.disabled=!charged;ui.touchSpecial.disabled=!charged;ui.specialButton.textContent=charged?'Use '+s.name+' (L)':'Charge special';ui.touchSpecial.textContent=charged?'Use '+s.name:'Special '+Math.floor(specialCharge)+'%';}
+    function sync(){ui.p.textContent=player.score;ui.a.textContent=rival.score;ui.clock.textContent=Math.floor(time/60)+':'+String(Math.ceil(time%60)).padStart(2,'0');ui.round.textContent=modes[mode].label+' bout';ui.priority.textContent=modes[mode].row?(priority?'Right of way · '+(priority===player?'left':'right'):'Right of way · neutral'):'No right of way · doubles count';syncSpecial();}
     function setMode(next){mode=next;document.querySelectorAll('.mode-btn').forEach(b=>{const on=b.dataset.mode===mode;b.classList.toggle('active',on);b.setAttribute('aria-pressed',on)});const m=modes[mode];document.documentElement.style.setProperty('--acid',m.color);ui.ruleTitle.textContent=m.target;ui.ruleText.textContent=m.rule;ui.targetIcon.dataset.mode=mode;ui.weaponAction.textContent=m.action;ui.weaponTarget.textContent='Target · '+m.target;ui.weaponScoring.textContent=m.scoring;ui.introEyebrow.textContent='Weapon '+({sabre:'01',foil:'02',epee:'03'}[mode])+' / '+m.label;reset(true);}
     function setDifficulty(next){if(!difficulties[next])return;difficulty=next;document.querySelectorAll('.difficulty-btn').forEach(b=>{const on=b.dataset.difficulty===difficulty;b.classList.toggle('active',on);b.setAttribute('aria-pressed',on)});reset(true);}
-    function start(){if(ended)reset(false);running=true;ended=false;ui.card.classList.add('hidden');ui.call.textContent='Allez!';setTimeout(()=>{if(running)ui.call.textContent=modes[mode].target+' is valid'},700)}
+    function start(){if(specialActive)return;if(ended)reset(false);running=true;ended=false;ui.card.classList.add('hidden');ui.call.textContent='Allez!';setTimeout(()=>{if(running)ui.call.textContent=modes[mode].target+' is valid'},700)}
     function attack(who,isLunge=false){if(!running||who.attack>0||who.parry>0||(who.recovery>0&&who.riposte<=0))return;const m=modes[mode];who.attack=m.attack;who.recovery=m.attack+(isLunge?380:240);who.lunging=isLunge;who.hit=false;if(m.row&&(!priority||priorityTime<=0||who.riposte>0)){priority=who;priorityTime=who.riposte>0?950:720;who.riposte=0}ui.call.textContent=(isLunge?'Lunge':m.call)+' '+(who===player?'left':'right');}
     function playerAttack(){if(!running)return;const now=performance.now(),m=modes[mode];if(now-lastJ<280&&player.attack>0){player.lunging=true;player.attack=Math.max(player.attack,m.attack*.78);player.recovery=Math.max(player.recovery,player.attack+380);ui.call.textContent='Lunge left'}else attack(player,false);lastJ=now;}
     function parry(who){if(!running||who.parry>0||who.attack>0||who.recovery>0)return;const m=modes[mode];who.parry=m.parry;who.recovery=m.parry+320;ui.call.textContent=who===player?'Parry left':'Parry right';}
+    function useSpecial(){if(!running||specialActive||specialCharge<100)return;const s=specials[mode],token=++specialToken;running=false;specialActive=true;specialCharge=0;player.attack=player.parry=player.recovery=0;rival.attack=rival.parry=rival.recovery=0;player.lunging=mode==='epee';ui.cosmic.classList.add('active');ui.call.textContent=s.opening;syncSpecial();if(mode==='foil')setTimeout(()=>{if(specialActive&&token===specialToken)ui.call.textContent='Disengage under the blade…'},700);setTimeout(()=>{if(!specialActive||token!==specialToken)return;const won=Math.random()<s.chance;specialActive=false;player.lunging=false;ui.cosmic.classList.remove('active');if(won){point(player,s.name+' · Touch left')}else{player.recovery=780;rival.cool=260;running=true;ui.call.textContent=s.name+(mode==='sabre'?' missed the mask':mode==='foil'?' was read and parried':' fell short')+' · Fence!';sync()}},1800)}
     function prepareNext(){setTimeout(()=>{player.x=290;rival.x=910;lastJ=0;priority=null;priorityTime=0;player.attack=player.parry=player.riposte=player.recovery=rival.attack=rival.parry=rival.riposte=rival.recovery=0;player.lunging=rival.lunging=false;player.hit=rival.hit=false;ui.call.textContent='En garde…';sync();setTimeout(()=>{running=true;ui.call.textContent='Allez!'},700)},760)}
     function point(winner,text){running=false;winner.score++;flash=360;shake=8;sync();ui.call.textContent=text;if(winner.score>=5){ended=true;setTimeout(()=>{ui.introTitle.textContent=winner===player?'Victory':'Defeated';ui.introText.textContent=winner===player?'Five touches. Bout to the left.':'Five touches. Bout to the right.';ui.start.textContent='Fence again';ui.card.classList.remove('hidden')},700)}else prepareNext()}
     function doubleTouch(){running=false;player.score++;rival.score++;flash=380;shake=8;sync();ui.call.textContent='Double touch · Point to both';if(player.score>=5||rival.score>=5){ended=true;setTimeout(()=>{ui.introTitle.textContent=player.score===rival.score?'Double finish':player.score>rival.score?'Victory':'Defeated';ui.introText.textContent='Épée double touch recorded.';ui.start.textContent='Fence again';ui.card.classList.remove('hidden')},700)}else prepareNext()}
@@ -227,10 +249,10 @@
       // scoring box and grounded cable reels
       ctx.fillStyle='#17232c';ctx.fillRect(w/2-82,42,164,68);ctx.fillStyle='#263640';ctx.fillRect(w/2-70,52,140,48);ctx.fillStyle='#57b8ff';ctx.beginPath();ctx.arc(w/2-42,76,12,0,Math.PI*2);ctx.fill();ctx.fillStyle='#ff5b45';ctx.beginPath();ctx.arc(w/2+42,76,12,0,Math.PI*2);ctx.fill();ctx.fillStyle='#d7e0e4';ctx.font='700 14px Inter';ctx.textAlign='center';ctx.fillText(player.score+'  —  '+rival.score,w/2,96);
       const piste=ctx.createLinearGradient(0,410,0,478);piste.addColorStop(0,'#c8d0d3');piste.addColorStop(1,'#87959d');ctx.fillStyle=piste;ctx.fillRect(35,410,w-70,68);ctx.strokeStyle='#e5ecef';ctx.lineWidth=2;ctx.strokeRect(35,410,w-70,68);for(let x=60;x<w-35;x+=52)line(x,412,x-24,476,'#9aa7ad',1);line(w/2,410,w/2,478,'#596a73',4);line(180,410,180,478,'#f4f7f8',2);line(w-180,410,w-180,478,'#f4f7f8',2);ctx.fillStyle='#3f505a';ctx.font='600 12px Inter';ctx.fillText('14 m piste',w/2,500);ctx.save();if(shake){ctx.translate((Math.random()-.5)*shake,0);shake*=.86;if(shake<.2)shake=0}fencer(player,'left','#297fc0');fencer(rival,'right','#c43f35');ctx.restore();if(flash>0){ctx.fillStyle=modes[mode].color+Math.floor(Math.min(70,flash/5)).toString(16).padStart(2,'0');ctx.fillRect(0,0,w,h);flash-=16}requestAnimationFrame(tick)}
-    function tick(t){const dt=Math.min(35,t-last||16);last=t;update(dt);draw()}
-    addEventListener('keydown',e=>{const key=e.key.toLowerCase();if(['a','d','j','k','enter',' '].includes(key))e.preventDefault();if(key==='a'||e.key==='ArrowLeft')keys.left=true;if(key==='d'||e.key==='ArrowRight')keys.right=true;if(key==='j'&&!e.repeat)playerAttack();if(key===' ')attack(player,false);if(key==='k'&&!e.repeat)parry(player);if(key==='enter')start()});
+    function tick(t){const dt=Math.min(35,t-last||16);last=t;if(running)specialCharge=Math.min(100,specialCharge+dt/SPECIAL_CHARGE_MS*100);update(dt);draw()}
+    addEventListener('keydown',e=>{const key=e.key.toLowerCase();if(['a','d','j','k','l','enter',' '].includes(key))e.preventDefault();if(key==='a'||e.key==='ArrowLeft')keys.left=true;if(key==='d'||e.key==='ArrowRight')keys.right=true;if(key==='j'&&!e.repeat)playerAttack();if(key===' ')attack(player,false);if(key==='k'&&!e.repeat)parry(player);if(key==='l'&&!e.repeat)useSpecial();if(key==='enter')start()});
     addEventListener('keyup',e=>{if(e.key==='a'||e.key==='ArrowLeft')keys.left=false;if(e.key==='d'||e.key==='ArrowRight')keys.right=false});
-    document.querySelectorAll('.mode-btn').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.mode)));document.querySelectorAll('.difficulty-btn').forEach(b=>b.addEventListener('click',()=>setDifficulty(b.dataset.difficulty)));ui.start.addEventListener('click',start);
+    document.querySelectorAll('.mode-btn').forEach(b=>b.addEventListener('click',()=>setMode(b.dataset.mode)));document.querySelectorAll('.difficulty-btn').forEach(b=>b.addEventListener('click',()=>setDifficulty(b.dataset.difficulty)));ui.start.addEventListener('click',start);ui.specialButton.addEventListener('click',useSpecial);ui.touchSpecial.addEventListener('click',useSpecial);
     document.querySelectorAll('[data-tap]').forEach(b=>{b.addEventListener('pointerdown',e=>{e.preventDefault();b.dataset.tap==='attack'?playerAttack():parry(player)})});
     document.querySelectorAll('[data-hold]').forEach(b=>{const k=b.dataset.hold;b.addEventListener('pointerdown',e=>{e.preventDefault();keys[k]=true;b.setPointerCapture(e.pointerId)});['pointerup','pointercancel','lostpointercapture'].forEach(ev=>b.addEventListener(ev,()=>keys[k]=false))});
     if(document.modelContext?.registerTool){try{document.modelContext.registerTool({name:'select_fencing_mode',title:'Select fencing mode',description:'Select Sabre, Foil, or Épée and reset the visible bout.',inputSchema:{type:'object',properties:{mode:{type:'string',enum:['sabre','foil','epee']}},required:['mode'],additionalProperties:false},annotations:{readOnlyHint:false,untrustedContentHint:false},execute(input){if(!modes[input?.mode])throw new Error('Invalid fencing mode');setMode(input.mode);return{mode:input.mode,status:'ready'}}});document.modelContext.registerTool({name:'select_fencing_difficulty',title:'Select rival difficulty',description:'Select Easy, Medium, or Hard rival difficulty and reset the visible bout.',inputSchema:{type:'object',properties:{difficulty:{type:'string',enum:['easy','medium','hard']}},required:['difficulty'],additionalProperties:false},annotations:{readOnlyHint:false,untrustedContentHint:false},execute(input){if(!difficulties[input?.difficulty])throw new Error('Invalid difficulty');setDifficulty(input.difficulty);return{difficulty:input.difficulty,status:'ready'}}});document.modelContext.registerTool({name:'start_fencing_bout',title:'Start fencing bout',description:'Start the currently selected fencing bout.',inputSchema:{type:'object',properties:{},additionalProperties:false},annotations:{readOnlyHint:false,untrustedContentHint:false},execute(){start();return{mode,difficulty,status:'started'}}})}catch(e){console.debug('WebMCP unavailable',e)}}

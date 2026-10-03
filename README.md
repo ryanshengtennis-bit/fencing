@@ -2,6 +2,8 @@
 
 A browser-based fencing game featuring Sabre, Foil, and Épée, with realistic weapon rules and Easy, Medium, and Hard opponents.
 
+Bouts are first to 15 touches with a nine-minute clock.
+
 ## Play
 
 [Open Fencing Arena](https://en-garde-fencing-arena.echristina-wang.chatgpt.site)
@@ -9,7 +11,7 @@ A browser-based fencing game featuring Sabre, Foil, and Épée, with realistic w
 ## Controls
 
 - `A` / `D`: retreat and advance
-- `J`: attack; double-tap to lunge
+- `J`: attack; one deliberate double-tap converts it to a lunge (extra taps are ignored until recovery)
 - `K`: parry
 - `L`: use the weapon's special move once the 24-second charge is full
 - `Enter`: start the bout

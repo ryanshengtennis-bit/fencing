@@ -42,8 +42,9 @@
     .fencer-score .badge{width:9px;height:34px;background:var(--blue)}
     .fencer-score.right .badge{background:var(--red)}
     .fencer-score strong{font-size:2.6rem;line-height:1}
-    .timer{text-align:center;font:800 2rem "Barlow Condensed",sans-serif;letter-spacing:.04em}
+    .timer{text-align:center;font:800 2rem "Barlow Condensed",sans-serif;letter-spacing:.04em;min-width:150px}
     .timer small{display:block;color:var(--muted);font:600 .68rem Inter,sans-serif;letter-spacing:.16em;text-transform:uppercase}
+    .priority{margin-top:3px;color:var(--acid);font:700 .62rem Inter,sans-serif;letter-spacing:.12em;text-transform:uppercase;min-height:.8rem}
     .canvas-wrap{position:relative;aspect-ratio:2.35/1;min-height:310px}
     canvas{display:block;width:100%;height:100%;touch-action:none}
     .start-card{position:absolute;inset:0;display:grid;place-content:center;text-align:center;background:#06111ad6;backdrop-filter:blur(4px);z-index:3;transition:.2s}
@@ -64,7 +65,11 @@
     .weapon{display:flex;gap:18px;align-items:flex-start}
     .target-icon{flex:0 0 54px;height:72px;position:relative}
     .target-icon:before{content:"";position:absolute;width:24px;height:24px;border:2px solid var(--muted);border-radius:50%;left:14px;top:0}
-    .target-icon:after{content:"";position:absolute;width:48px;height:40px;border:2px solid var(--acid);background:#f5ff6714;clip-path:polygon(28% 0,72% 0,100% 100%,0 100%);left:2px;bottom:0}
+    .target-icon:after{content:"";position:absolute;width:48px;height:40px;border:2px solid var(--acid);background:#f5ff6726;clip-path:polygon(28% 0,72% 0,100% 100%,0 100%);left:2px;bottom:0}
+    .target-icon[data-mode="sabre"]:before{border-color:var(--acid);background:#f5ff6726}
+    .target-icon[data-mode="epee"]:before{border-color:var(--blue);background:#57b8ff26}
+    .target-icon[data-mode="epee"]:after{border-color:var(--blue);background:#57b8ff26}
+    .target-icon[data-mode="foil"]:after{height:32px;bottom:5px}
     .weapon h3{margin:0 0 5px;font:700 1.25rem "Barlow Condensed",sans-serif;text-transform:uppercase;letter-spacing:.05em}
     .weapon p{margin:0;color:var(--muted);font-size:.82rem;line-height:1.55;max-width:52ch}
     .first-to{font:800 2.8rem/1 "Barlow Condensed",sans-serif;color:var(--acid)}
@@ -101,7 +106,7 @@
       <section class="arena-frame" aria-label="Playable fencing match">
         <div class="scorebar">
           <div class="fencer-score"><i class="badge"></i><span>You</span><strong id="playerScore">0</strong></div>
-          <div class="timer"><span id="clock">1:30</span><small id="roundLabel">Sabre bout</small></div>
+          <div class="timer"><span id="clock">1:30</span><small id="roundLabel">Sabre bout</small><div class="priority" id="priority">Right of way · neutral</div></div>
           <div class="fencer-score right"><i class="badge"></i><span>Rival</span><strong id="aiScore">0</strong></div>
         </div>
         <div class="canvas-wrap">
@@ -117,8 +122,8 @@
       </section>
 
       <div class="touch-controls" aria-label="Touch controls">
-        <button data-hold="left" aria-label="Move left">◀ Back</button>
-        <button data-hold="right" aria-label="Move right">Forward ▶</button>
+        <button data-hold="left" aria-label="Retreat">◀ Retreat</button>
+        <button data-hold="right" aria-label="Advance">Advance ▶</button>
         <button class="parry" data-tap="parry">Parry</button>
         <button class="attack" data-tap="attack">Attack</button>
       </div>
@@ -129,7 +134,7 @@
           <div class="controls"><kbd>A</kbd><kbd>D</kbd><span>Move</span><kbd>J</kbd><span>Attack</span><kbd>K</kbd><span>Parry</span></div>
         </div>
         <div class="panel weapon">
-          <div class="target-icon" id="targetIcon" aria-hidden="true"></div>
+          <div class="target-icon" id="targetIcon" data-mode="sabre" aria-hidden="true"></div>
           <div><div class="kicker">Current target</div><h3 id="ruleTitle">Upper body</h3><p id="ruleText">Sabre rewards aggression. Land a cut above the waist before your rival takes priority.</p></div>
         </div>
         <div class="panel">
@@ -143,29 +148,46 @@
   <script>
   (()=>{
     const canvas=document.getElementById('arena'),ctx=canvas.getContext('2d');
-    const ui={p:document.getElementById('playerScore'),a:document.getElementById('aiScore'),clock:document.getElementById('clock'),round:document.getElementById('roundLabel'),card:document.getElementById('startCard'),start:document.getElementById('startButton'),call:document.getElementById('callout'),weaponClass:document.getElementById('weaponClass'),ruleTitle:document.getElementById('ruleTitle'),ruleText:document.getElementById('ruleText'),introEyebrow:document.getElementById('introEyebrow'),introTitle:document.getElementById('introTitle'),introText:document.getElementById('introText')};
+    const ui={p:document.getElementById('playerScore'),a:document.getElementById('aiScore'),clock:document.getElementById('clock'),round:document.getElementById('roundLabel'),priority:document.getElementById('priority'),card:document.getElementById('startCard'),start:document.getElementById('startButton'),call:document.getElementById('callout'),weaponClass:document.getElementById('weaponClass'),ruleTitle:document.getElementById('ruleTitle'),ruleText:document.getElementById('ruleText'),targetIcon:document.getElementById('targetIcon'),introEyebrow:document.getElementById('introEyebrow'),introTitle:document.getElementById('introTitle'),introText:document.getElementById('introText')};
     const modes={
-      sabre:{label:'Sabre',class:'Fast · Cutting',target:'Upper body',rule:'Sabre rewards aggression. Land a cut above the waist before your rival takes priority.',reach:142,attack:330,parry:440,ai:.020,color:'#f5ff67'},
-      foil:{label:'Foil',class:'Precise · Thrusting',target:'Torso only',rule:'Foil is about precision and right of way. Only a clean thrust to the torso scores.',reach:154,attack:390,parry:500,ai:.016,color:'#67f4d7'},
-      epee:{label:'Épée',class:'Tactical · Full target',target:'Whole body',rule:'Épée allows touches anywhere. No priority—distance and timing decide the point.',reach:165,attack:450,parry:390,ai:.013,color:'#57b8ff'}
+      sabre:{label:'Sabre',class:'Cut or thrust · Right of way',target:'Above the waist',rule:'Cuts and thrusts above the waist score. Establish the attack or earn priority with a parry-riposte.',reach:170,attack:430,parry:330,ai:.017,color:'#f5ff67',row:true},
+      foil:{label:'Foil',class:'Thrust only · Right of way',target:'Torso only',rule:'Only the lamé-covered torso is valid. An attack in preparation can be taken over; a parry earns the riposte.',reach:176,attack:500,parry:390,ai:.014,color:'#67f4d7',row:true},
+      epee:{label:'Épée',class:'Thrust only · No priority',target:'Whole body',rule:'The whole body is valid and there is no right of way. Close attacks may produce a double touch.',reach:184,attack:540,parry:360,ai:.012,color:'#57b8ff',row:false}
     };
-    let mode='sabre',running=false,ended=false,last=0,time=90,flash=0,shake=0;
+    let mode='sabre',running=false,ended=false,last=0,time=90,flash=0,shake=0,priority=null,priorityTime=0;
     const keys={left:false,right:false};
-    const player={x:290,score:0,attack:0,parry:0,hit:false};
-    const rival={x:910,score:0,attack:0,parry:0,hit:false,cool:900};
+    const player={x:290,score:0,attack:0,parry:0,hit:false,riposte:0};
+    const rival={x:910,score:0,attack:0,parry:0,hit:false,riposte:0,cool:900};
 
-    function reset(show=true){running=false;ended=false;time=90;player.x=290;rival.x=910;player.score=rival.score=0;player.attack=player.parry=rival.attack=rival.parry=0;player.hit=rival.hit=false;rival.cool=700;sync();if(show){ui.introTitle.textContent='En garde';ui.introText.textContent='First to 5 touches wins the bout.';ui.start.textContent='Start bout';ui.card.classList.remove('hidden');ui.call.textContent='Choose your weapon · Enter to start';}}
-    function sync(){ui.p.textContent=player.score;ui.a.textContent=rival.score;ui.clock.textContent=Math.floor(time/60)+':'+String(Math.ceil(time%60)).padStart(2,'0');ui.round.textContent=modes[mode].label+' bout';}
-    function setMode(next){mode=next;document.querySelectorAll('.mode-btn').forEach(b=>{const on=b.dataset.mode===mode;b.classList.toggle('active',on);b.setAttribute('aria-pressed',on)});const m=modes[mode];ui.weaponClass.textContent=m.class;ui.ruleTitle.textContent=m.target;ui.ruleText.textContent=m.rule;ui.introEyebrow.textContent='Weapon '+({sabre:'01',foil:'02',epee:'03'}[mode])+' / '+m.label;reset(true);}
+    function reset(show=true){running=false;ended=false;time=90;priority=null;priorityTime=0;player.x=290;rival.x=910;player.score=rival.score=0;player.attack=player.parry=player.riposte=rival.attack=rival.parry=rival.riposte=0;player.hit=rival.hit=false;rival.cool=700;sync();if(show){ui.introTitle.textContent='En garde';ui.introText.textContent='First to 5 touches wins the bout.';ui.start.textContent='Start bout';ui.card.classList.remove('hidden');ui.call.textContent='Choose your weapon · Enter to start';}}
+    function sync(){ui.p.textContent=player.score;ui.a.textContent=rival.score;ui.clock.textContent=Math.floor(time/60)+':'+String(Math.ceil(time%60)).padStart(2,'0');ui.round.textContent=modes[mode].label+' bout';ui.priority.textContent=modes[mode].row?(priority?'Right of way · '+(priority===player?'left':'right'):'Right of way · neutral'):'No right of way · doubles count';}
+    function setMode(next){mode=next;document.querySelectorAll('.mode-btn').forEach(b=>{const on=b.dataset.mode===mode;b.classList.toggle('active',on);b.setAttribute('aria-pressed',on)});const m=modes[mode];ui.weaponClass.textContent=m.class;ui.ruleTitle.textContent=m.target;ui.ruleText.textContent=m.rule;ui.targetIcon.dataset.mode=mode;ui.introEyebrow.textContent='Weapon '+({sabre:'01',foil:'02',epee:'03'}[mode])+' / '+m.label;reset(true);}
     function start(){if(ended)reset(false);running=true;ended=false;ui.card.classList.add('hidden');ui.call.textContent='Allez!';setTimeout(()=>{if(running)ui.call.textContent=modes[mode].target+' is valid'},700)}
-    function attack(who){if(!running||who.attack>0||who.parry>0)return;who.attack=modes[mode].attack;}
-    function parry(who){if(!running||who.parry>0||who.attack>0)return;who.parry=modes[mode].parry;}
-    function point(winner,text){running=false;winner.score++;flash=360;shake=10;sync();ui.call.textContent=text;if(winner.score>=5){ended=true;setTimeout(()=>{ui.introTitle.textContent=winner===player?'Victory':'Defeated';ui.introText.textContent=winner===player?'You controlled the piste.':'Your rival reached five touches first.';ui.start.textContent='Fence again';ui.card.classList.remove('hidden')},650)}else setTimeout(()=>{player.x=290;rival.x=910;player.attack=player.parry=rival.attack=rival.parry=0;player.hit=rival.hit=false;ui.call.textContent='En garde…';setTimeout(()=>{running=true;ui.call.textContent='Allez!'},700)},650)}
-    function resolve(){const distance=rival.x-player.x,m=modes[mode];const pActive=player.attack>m.attack*.34&&player.attack<m.attack*.72;const aActive=rival.attack>m.attack*.34&&rival.attack<m.attack*.72;if(distance<m.reach+42&&pActive&&!rival.hit){rival.hit=true;if(rival.parry>m.parry*.3){player.attack=0;ui.call.textContent='Parried!';rival.cool=90}else point(player,'Touch left · You score')}if(distance<m.reach+42&&aActive&&!player.hit){player.hit=true;if(player.parry>m.parry*.3){rival.attack=0;ui.call.textContent='Parried!';rival.cool=850}else point(rival,'Touch right · Rival scores')}}
-    function update(dt){if(!running)return;time=Math.max(0,time-dt/1000);if(time<=0){if(player.score===rival.score){time=20;ui.call.textContent='Sudden death'}else point(player.score>rival.score?player:rival,'Time · Bout decided');return}const speed=.22*dt;if(keys.left)player.x=Math.max(92,player.x-speed);if(keys.right)player.x=Math.min(rival.x-115,player.x+speed);rival.cool-=dt;const dist=rival.x-player.x;if(rival.cool<0){const m=modes[mode];if(dist>m.reach+30)rival.x=Math.max(player.x+118,rival.x-.095*dt);else if(Math.random()<m.ai*dt/16){Math.random()<.72?attack(rival):parry(rival);rival.cool=430+Math.random()*650}}if(player.attack>0)player.attack-=dt;if(player.parry>0)player.parry-=dt;if(rival.attack>0)rival.attack-=dt;if(rival.parry>0)rival.parry-=dt;resolve();sync()}
+    function attack(who){if(!running||who.attack>0||who.parry>0)return;const m=modes[mode];who.attack=m.attack;who.hit=false;if(m.row&&(!priority||priorityTime<=0||who.riposte>0)){priority=who;priorityTime=who.riposte>0?950:720;who.riposte=0}ui.call.textContent=who===player?'Attack left':'Attack right';}
+    function parry(who){if(!running||who.parry>0||who.attack>0)return;who.parry=modes[mode].parry;ui.call.textContent=who===player?'Parry left':'Parry right';}
+    function prepareNext(){setTimeout(()=>{player.x=290;rival.x=910;priority=null;priorityTime=0;player.attack=player.parry=player.riposte=rival.attack=rival.parry=rival.riposte=0;player.hit=rival.hit=false;ui.call.textContent='En garde…';sync();setTimeout(()=>{running=true;ui.call.textContent='Allez!'},700)},760)}
+    function point(winner,text){running=false;winner.score++;flash=360;shake=8;sync();ui.call.textContent=text;if(winner.score>=5){ended=true;setTimeout(()=>{ui.introTitle.textContent=winner===player?'Victory':'Defeated';ui.introText.textContent=winner===player?'Five touches. Bout to the left.':'Five touches. Bout to the right.';ui.start.textContent='Fence again';ui.card.classList.remove('hidden')},700)}else prepareNext()}
+    function doubleTouch(){running=false;player.score++;rival.score++;flash=380;shake=8;sync();ui.call.textContent='Double touch · Point to both';if(player.score>=5||rival.score>=5){ended=true;setTimeout(()=>{ui.introTitle.textContent=player.score===rival.score?'Double finish':player.score>rival.score?'Victory':'Defeated';ui.introText.textContent='Épée double touch recorded.';ui.start.textContent='Fence again';ui.card.classList.remove('hidden')},700)}else prepareNext()}
+    function block(attacker,defender){attacker.attack=0;attacker.hit=true;defender.parry=0;defender.riposte=950;if(modes[mode].row){priority=defender;priorityTime=950}ui.call.textContent='Parry '+(defender===player?'left':'right')+' · Riposte!';if(defender===rival)rival.cool=100;}
+    function resolve(){const distance=rival.x-player.x,m=modes[mode];const pActive=player.attack>m.attack*.28&&player.attack<m.attack*.68;const aActive=rival.attack>m.attack*.28&&rival.attack<m.attack*.68;let pLand=distance<m.reach+48&&pActive&&!rival.hit,aLand=distance<m.reach+48&&aActive&&!player.hit;if(pLand&&rival.parry>m.parry*.22){block(player,rival);pLand=false}if(aLand&&player.parry>m.parry*.22){block(rival,player);aLand=false}if(pLand&&aLand){player.hit=rival.hit=true;if(!m.row)return doubleTouch();return point(priority===rival?rival:player,priority===rival?'Attack right · Touch right':'Attack left · Touch left')}if(pLand){rival.hit=true;if(!m.row||priority===player||!priority)return point(player,m.row?'Attack left · Touch left':'Touch left')}if(aLand){player.hit=true;if(!m.row||priority===rival||!priority)return point(rival,m.row?'Attack right · Touch right':'Touch right')}}
+    function update(dt){if(!running)return;const m=modes[mode];time=Math.max(0,time-dt/1000);priorityTime=Math.max(0,priorityTime-dt);if(priorityTime===0&&m.row)priority=null;if(time<=0){if(player.score===rival.score){time=20;ui.call.textContent='Priority minute · Next touch wins'}else point(player.score>rival.score?player:rival,'Time · Bout decided');return}const speed=.17*dt;if(player.attack<=0&&player.parry<=0){if(keys.left)player.x=Math.max(92,player.x-speed);if(keys.right)player.x=Math.min(rival.x-122,player.x+speed)}rival.cool-=dt;const dist=rival.x-player.x;if(rival.attack<=0&&rival.parry<=0){if(dist>m.reach+68)rival.x=Math.max(player.x+124,rival.x-.085*dt);else if(dist<m.reach+20&&player.attack<=0)rival.x=Math.min(1108,rival.x+.105*dt)}if(rival.cool<0){if(player.attack>m.attack*.55&&Math.random()<.68)parry(rival);else if(dist<m.reach+76&&Math.random()<.72)attack(rival);else if(Math.random()<.28)parry(rival);rival.cool=480+Math.random()*720}for(const f of [player,rival]){if(f.attack>0)f.attack=Math.max(0,f.attack-dt);if(f.parry>0)f.parry=Math.max(0,f.parry-dt);if(f.riposte>0)f.riposte=Math.max(0,f.riposte-dt)}resolve();sync()}
     function line(x1,y1,x2,y2,color,w=5){ctx.strokeStyle=color;ctx.lineWidth=w;ctx.lineCap='round';ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke()}
-    function fencer(f,side,color){const ground=410,dir=side==='left'?1:-1;let lean=f.attack>0?18:0;let lunge=f.attack>0?32:0;const x=f.x+dir*lunge,bodyY=286;ctx.save();ctx.translate(x,0);ctx.scale(dir,1);ctx.shadowColor=color;ctx.shadowBlur=12;ctx.strokeStyle=color;ctx.lineWidth=5;ctx.fillStyle='#0b1826';ctx.beginPath();ctx.arc(0,230,25,0,Math.PI*2);ctx.fill();ctx.stroke();ctx.shadowBlur=0;line(0,257,lean,340,color,9);line(8,283,52,304,color,7);const armY=f.parry>0?260:304;line(50,304,90,armY,color,6);const thrust=f.attack>0?175:128;line(88,armY,thrust,f.attack>0?277:armY-8,modes[mode].color,3);ctx.fillStyle=modes[mode].color;ctx.fillRect(82,armY-11,5,22);line(lean,340,58,ground,color,9);line(lean,340,-45,ground,color,9);line(50,ground,76,ground,color,8);line(-53,ground,-27,ground,color,8);ctx.restore()}
-    function draw(){const w=canvas.width,h=canvas.height;ctx.clearRect(0,0,w,h);const grad=ctx.createLinearGradient(0,0,0,h);grad.addColorStop(0,'#0b2031');grad.addColorStop(1,'#07111b');ctx.fillStyle=grad;ctx.fillRect(0,0,w,h);ctx.strokeStyle='#173349';ctx.lineWidth=1;for(let x=0;x<w;x+=80)line(x,80,x+110,h,'#122c3e',1);for(let y=90;y<h;y+=70)line(0,y,w,y,'#10283a',1);ctx.fillStyle='#101f2d';ctx.fillRect(45,410,w-90,58);ctx.strokeStyle='#557086';ctx.lineWidth=2;ctx.strokeRect(45,410,w-90,58);for(let x=65;x<w-45;x+=65)line(x,412,x-25,466,'#263b4c',1);line(w/2,410,w/2,468,modes[mode].color,3);ctx.fillStyle='#71849a';ctx.font='600 13px Inter';ctx.textAlign='center';ctx.fillText('PISTE',w/2,494);ctx.save();if(shake){ctx.translate((Math.random()-.5)*shake,0);shake*=.86;if(shake<.2)shake=0}fencer(player,'left','#57b8ff');fencer(rival,'right','#ff5b45');ctx.restore();if(flash>0){ctx.fillStyle=modes[mode].color+Math.floor(Math.min(90,flash/4)).toString(16).padStart(2,'0');ctx.fillRect(0,0,w,h);flash-=16}requestAnimationFrame(tick)}
+    function fencer(f,side,color){const m=modes[mode],ground=410,dir=side==='left'?1:-1,phase=f.attack>0?1-f.attack/m.attack:0,lunge=f.attack>0?Math.sin(Math.PI*Math.min(1,phase))*58:0,lean=f.attack>0?18:0,x=f.x+dir*lunge,parrying=f.parry>0;ctx.save();ctx.translate(x,0);ctx.scale(dir,1);ctx.shadowColor='#0005';ctx.shadowBlur=10;ctx.shadowOffsetY=6;
+      // rear and front legs in a recognisable fencing stance
+      line(-7+lean,337,-55,398,'#d8e0e7',18);line(-55,398,-88,408,'#ecf1f4',12);line(4+lean,337,67+lunge*.22,393,'#edf2f5',19);line(67+lunge*.22,393,101+lunge*.3,407,'#f7fafb',12);
+      // jacket and plastron
+      ctx.fillStyle='#eef2f4';ctx.strokeStyle='#aeb9c2';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(-20,264);ctx.quadraticCurveTo(8,252,32,270);ctx.lineTo(30+lean,340);ctx.quadraticCurveTo(4,352,-18,337);ctx.closePath();ctx.fill();ctx.stroke();
+      if(mode==='foil'||mode==='sabre'){ctx.fillStyle=mode==='foil'?'#b9c4c9':'#c8d2d6';ctx.beginPath();ctx.moveTo(-5,267);ctx.lineTo(25,273);ctx.lineTo(25+lean,330);ctx.lineTo(-6,329);ctx.closePath();ctx.fill()}
+      // mask, bib and coloured back strap
+      ctx.fillStyle='#dfe6e9';ctx.beginPath();ctx.moveTo(-13,259);ctx.lineTo(17,259);ctx.lineTo(24,278);ctx.lineTo(-12,278);ctx.closePath();ctx.fill();ctx.strokeStyle=color;ctx.lineWidth=4;ctx.stroke();ctx.fillStyle='#25313a';ctx.beginPath();ctx.ellipse(1,232,27,32,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#71808a';ctx.lineWidth=1;for(let yy=215;yy<250;yy+=6)line(-20,yy,21,yy,'#66757f',1);for(let xx=-16;xx<18;xx+=7)line(xx,207,xx+3,255,'#52616b',1);
+      // weapon arm, glove, guard and blade
+      const shoulderY=276,handX=parrying?72:90,handY=parrying?246:(f.attack>0?281:296);line(22,shoulderY,53,292,'#e6ecef',15);line(53,292,handX,handY,'#f5f7f8',13);ctx.fillStyle='#e9edef';ctx.beginPath();ctx.arc(handX,handY,10,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#8d9ba4';ctx.lineWidth=3;ctx.beginPath();ctx.arc(handX+8,handY,13,-1.45,1.45);ctx.stroke();const tipX=f.attack>0?210:parrying?150:164,tipY=parrying?199:(f.attack>0?275:286);ctx.strokeStyle='#dce8ee';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(handX+12,handY);ctx.quadraticCurveTo((handX+tipX)/2,mode==='sabre'?tipY-7:tipY,tipX,tipY);ctx.stroke();ctx.fillStyle=m.color;ctx.beginPath();ctx.arc(tipX,tipY,3.5,0,Math.PI*2);ctx.fill();
+      // non-weapon arm counterbalances the stance
+      line(-11,278,-38,297,'#e9eef0',13);line(-38,297,-54,f.attack>0?270:278,'#edf2f4',11);ctx.restore()}
+    function draw(){const w=canvas.width,h=canvas.height;ctx.clearRect(0,0,w,h);const wall=ctx.createLinearGradient(0,0,0,410);wall.addColorStop(0,'#dce4e9');wall.addColorStop(1,'#aebbc3');ctx.fillStyle=wall;ctx.fillRect(0,0,w,410);for(let x=0;x<w;x+=150){ctx.fillStyle=x%300===0?'#cbd5da':'#d4dde1';ctx.fillRect(x,0,149,410)}ctx.fillStyle='#7f909b';ctx.fillRect(0,330,w,8);
+      // scoring box and grounded cable reels
+      ctx.fillStyle='#17232c';ctx.fillRect(w/2-82,42,164,68);ctx.fillStyle='#263640';ctx.fillRect(w/2-70,52,140,48);ctx.fillStyle='#57b8ff';ctx.beginPath();ctx.arc(w/2-42,76,12,0,Math.PI*2);ctx.fill();ctx.fillStyle='#ff5b45';ctx.beginPath();ctx.arc(w/2+42,76,12,0,Math.PI*2);ctx.fill();ctx.fillStyle='#d7e0e4';ctx.font='700 14px Inter';ctx.textAlign='center';ctx.fillText(player.score+'  —  '+rival.score,w/2,96);
+      const piste=ctx.createLinearGradient(0,410,0,478);piste.addColorStop(0,'#c8d0d3');piste.addColorStop(1,'#87959d');ctx.fillStyle=piste;ctx.fillRect(35,410,w-70,68);ctx.strokeStyle='#e5ecef';ctx.lineWidth=2;ctx.strokeRect(35,410,w-70,68);for(let x=60;x<w-35;x+=52)line(x,412,x-24,476,'#9aa7ad',1);line(w/2,410,w/2,478,'#596a73',4);line(180,410,180,478,'#f4f7f8',2);line(w-180,410,w-180,478,'#f4f7f8',2);ctx.fillStyle='#3f505a';ctx.font='600 12px Inter';ctx.fillText('14 m piste',w/2,500);ctx.save();if(shake){ctx.translate((Math.random()-.5)*shake,0);shake*=.86;if(shake<.2)shake=0}fencer(player,'left','#297fc0');fencer(rival,'right','#c43f35');ctx.restore();if(flash>0){ctx.fillStyle=modes[mode].color+Math.floor(Math.min(70,flash/5)).toString(16).padStart(2,'0');ctx.fillRect(0,0,w,h);flash-=16}requestAnimationFrame(tick)}
     function tick(t){const dt=Math.min(35,t-last||16);last=t;update(dt);draw()}
     addEventListener('keydown',e=>{if(['a','d','j','k','Enter',' '].includes(e.key))e.preventDefault();if(e.key==='a'||e.key==='ArrowLeft')keys.left=true;if(e.key==='d'||e.key==='ArrowRight')keys.right=true;if(e.key==='j'||e.key===' ')attack(player);if(e.key==='k')parry(player);if(e.key==='Enter')start()});
     addEventListener('keyup',e=>{if(e.key==='a'||e.key==='ArrowLeft')keys.left=false;if(e.key==='d'||e.key==='ArrowRight')keys.right=false});

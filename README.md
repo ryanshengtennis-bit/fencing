@@ -9,7 +9,7 @@ A browser-based fencing game featuring Sabre, Foil, and Épée, with realistic w
 ## Controls
 
 - `A` / `D`: retreat and advance
-- `J`: attack
+- `J`: attack; double-tap to lunge
 - `K`: parry
 - `Enter`: start the bout
 

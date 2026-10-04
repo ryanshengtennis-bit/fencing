@@ -18,4 +18,6 @@ Bouts are first to 15 touches with a nine-minute clock.
 
 Special moves: Sabre Mask Hit (2/5 chance), Foil Feint–Disengage (3/5 chance), and Épée Flèche (3/5 chance).
 
+Each special begins with a half-second action freeze, then plays its own weapon-specific animation.
+
 The game is a self-contained static website in `dist/index.html`.

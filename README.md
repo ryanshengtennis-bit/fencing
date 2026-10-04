@@ -16,7 +16,7 @@ Bouts are first to 15 touches with a nine-minute clock.
 - `L`: use the weapon's special move once the 24-second charge is full
 - `Enter`: start the bout
 
-Special moves: Sabre Mask Hit (2/5 chance), Foil Feint–Disengage (3/5 chance), and Épée Flèche (3/5 chance).
+Special moves: Sabre Mask Hit (2/5 chance), Foil Feint–Disengage (3/5 chance), and Épée Flèche (3/5 chance). A successful charged special awards 3 touches, capped at the 15-touch match limit.
 
 Each special begins with a half-second action freeze, then plays its own weapon-specific animation.
 
